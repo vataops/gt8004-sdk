@@ -9,7 +9,7 @@ from gt8004.middleware.fastapi import GT8004Middleware
 logger = GT8004Logger(
     agent_id=os.getenv("GT8004_AGENT_ID", "example-agent"),
     api_key=os.getenv("GT8004_API_KEY", "your-api-key"),
-    ingest_url=os.getenv("GT8004_INGEST_URL", "http://localhost:9093/v1/ingest"),
+    ingest_url=os.getenv("GT8004_INGEST_URL", "http://localhost:9092/v1/ingest"),
     batch_size=50,  # Flush after 50 requests
     flush_interval=5.0,  # Or flush every 5 seconds
 )

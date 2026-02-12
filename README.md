@@ -27,7 +27,7 @@ app = FastAPI()
 app.add_middleware(GT8004Middleware, logger=logger)
 ```
 
-**That's it!** Your analytics are now live at `https://gt8004.network/agents/{agent-id}` 📊
+**That's it!** Your analytics are now live at `https://gt8004.xyz/agents/{agent-id}` 📊
 
 ## Features
 
