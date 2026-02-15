@@ -1,5 +1,7 @@
 """Main GT8004 logger class."""
 
+from __future__ import annotations
+
 import logging
 
 from .transport import BatchTransport

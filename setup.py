@@ -33,6 +33,8 @@ setup(
     ],
     extras_require={
         "fastapi": ["fastapi>=0.100.0", "starlette>=0.27.0"],
+        "mcp": ["fastmcp>=2.0"],
+        "all": ["fastapi>=0.100.0", "starlette>=0.27.0", "fastmcp>=2.0"],
         "dev": ["pytest>=7.0.0", "pytest-asyncio>=0.21.0"],
     },
 )

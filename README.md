@@ -12,29 +12,33 @@ pip install git+https://github.com/HydroX-labs/gt8004-sdk.git
 
 ## Quick Start
 
-### MCP Server
+### MCP Server (FastMCP)
 
 ```python
-logger = GT8004Logger(
-    agent_id="your-agent-id",
-    api_key="your-api-key",
-    protocol="mcp"
-)
+from fastmcp import FastMCP
+from gt8004 import GT8004Logger
+from gt8004.middleware.mcp import GT8004MCPMiddleware
+
+logger = GT8004Logger(agent_id="your-agent-id", api_key="your-api-key", protocol="mcp")
 logger.transport.start_auto_flush()
 
-app = FastAPI()
-app.add_middleware(GT8004Middleware, logger=logger)
-# Automatically extracts tool names from JSON-RPC tools/call requests
+mcp = FastMCP("my-server")
+mcp.add_middleware(GT8004MCPMiddleware(logger))
+
+@mcp.tool()
+def search(query: str) -> str:
+    return "results..."
+# Automatically logs tool_name="search", protocol="mcp"
 ```
 
-### A2A Server
+### A2A Server (FastAPI)
 
 ```python
-logger = GT8004Logger(
-    agent_id="your-agent-id",
-    api_key="your-api-key",
-    protocol="a2a"
-)
+from fastapi import FastAPI
+from gt8004 import GT8004Logger
+from gt8004.middleware.fastapi import GT8004Middleware
+
+logger = GT8004Logger(agent_id="your-agent-id", api_key="your-api-key", protocol="a2a")
 logger.transport.start_auto_flush()
 
 app = FastAPI()
@@ -42,28 +46,46 @@ app.add_middleware(GT8004Middleware, logger=logger)
 # Automatically extracts skill_id from A2A request bodies
 ```
 
+### Flask / Django
+
+```python
+from flask import Flask
+from gt8004 import GT8004Logger
+from gt8004.middleware.flask import GT8004FlaskMiddleware
+
+logger = GT8004Logger(agent_id="your-agent-id", api_key="your-api-key")
+logger.transport.start_auto_flush()
+
+app = Flask(__name__)
+app.wsgi_app = GT8004FlaskMiddleware(app.wsgi_app, logger)
+```
+
 Your analytics are now live at `https://gt8004.xyz/agents/{agent-id}` with protocol-specific breakdowns.
 
 ## Features
 
-- Zero-config FastAPI middleware
+- Multi-framework support (FastMCP, FastAPI, Flask, Django)
 - Protocol-aware logging (MCP, A2A)
 - Automatic tool/skill name extraction per protocol
 - Non-blocking async transport
 - Auto-retry with exponential backoff
 - Circuit breaker protection
 
+## Supported Frameworks
+
+| Framework | Middleware | Install |
+|-----------|-----------|---------|
+| FastMCP (MCP servers) | `GT8004MCPMiddleware` | `pip install gt8004-sdk[mcp]` |
+| FastAPI / Starlette | `GT8004Middleware` | `pip install gt8004-sdk[fastapi]` |
+| Flask / Django | `GT8004FlaskMiddleware` | `pip install gt8004-sdk` |
+
 ## Protocol Support
 
 | Protocol | Tool Name Source | Example |
 |----------|----------------|---------|
 | *(none)* | URL path last segment | `/api/search` -> `search` |
-| `mcp` | JSON-RPC `tools/call` params | `{"method":"tools/call","params":{"name":"search"}}` -> `search` |
+| `mcp` | FastMCP `on_call_tool` hook | `@mcp.tool() def search(...)` -> `search` |
 | `a2a` | Request body `skill_id` | `{"skill_id":"translate"}` -> `translate` |
-
-## Documentation
-
-See [examples/](examples/) for complete examples.
 
 ## License
 
