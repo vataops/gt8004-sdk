@@ -37,7 +37,7 @@ class GT8004Logger:
         self,
         agent_id: str,
         api_key: str,
-        ingest_url: str = "http://localhost:9092/v1/ingest",
+        ingest_url: str = "https://testnet.ingest.gt8004.xyz/v1/ingest",
         batch_size: int = 50,
         flush_interval: float = 5.0,
         protocol: str | None = None,
