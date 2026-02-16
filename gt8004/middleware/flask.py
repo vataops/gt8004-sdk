@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from ..logger import GT8004Logger
 
 from ..types import RequestLogEntry
-from ._extract import BODY_LIMIT, extract_tool_name
+from ._extract import BODY_LIMIT, extract_tool_name, extract_x402_payment
 
 
 class GT8004FlaskMiddleware:
@@ -108,6 +108,9 @@ class GT8004FlaskMiddleware:
         }
         headers = {k: v for k, v in raw_headers.items() if v is not None}
 
+        # Extract x402 payment info from X-Payment header
+        x402 = extract_x402_payment(environ.get("HTTP_X_PAYMENT"))
+
         entry = RequestLogEntry(
             request_id=request_id,
             method=method,
@@ -126,6 +129,10 @@ class GT8004FlaskMiddleware:
             referer=referer,
             content_type=content_type,
             timestamp=datetime.utcnow().isoformat() + "Z",
+            x402_amount=x402["x402_amount"],
+            x402_tx_hash=x402["x402_tx_hash"],
+            x402_token=x402["x402_token"],
+            x402_payer=x402["x402_payer"],
         )
 
         # Bridge sync WSGI to async logger via background event loop

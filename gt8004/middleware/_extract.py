@@ -50,3 +50,33 @@ def extract_tool_name(protocol: str | None, body: str | None, path: str) -> str 
         return extract_a2a_tool_name(body, path)
     else:
         return extract_http_tool_name(path)
+
+
+def extract_x402_payment(header_value: str | None) -> dict:
+    """Extract x402 payment fields from the X-Payment header JSON.
+
+    Returns a dict with keys x402_amount, x402_tx_hash, x402_token, x402_payer.
+    All values default to None if the header is missing or malformed.
+    """
+    result: dict = {
+        "x402_amount": None,
+        "x402_tx_hash": None,
+        "x402_token": None,
+        "x402_payer": None,
+    }
+    if not header_value:
+        return result
+    try:
+        payment = json.loads(header_value)
+        amount = payment.get("amount")
+        if amount is not None:
+            result["x402_amount"] = float(amount)
+        if payment.get("tx_hash"):
+            result["x402_tx_hash"] = str(payment["tx_hash"])
+        if payment.get("token"):
+            result["x402_token"] = str(payment["token"])
+        if payment.get("payer"):
+            result["x402_payer"] = str(payment["payer"])
+    except (json.JSONDecodeError, TypeError, ValueError, AttributeError):
+        pass
+    return result

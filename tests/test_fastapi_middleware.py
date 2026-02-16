@@ -148,3 +148,61 @@ class TestFastAPIMiddlewareMetadata:
         entry = logger.log.call_args[0][0]
         assert entry.response_body is not None
         assert "ok" in entry.response_body
+
+
+class TestFastAPIMiddlewareX402:
+    def test_extracts_x402_payment(self):
+        logger = _make_logger()
+        app = _make_app(logger)
+        client = TestClient(app)
+
+        payment = json.dumps({
+            "amount": 0.75,
+            "tx_hash": "0xabc123def456",
+            "token": "USDC",
+            "payer": "0x1234567890abcdef",
+        })
+        client.get("/health", headers={"X-Payment": payment})
+
+        entry = logger.log.call_args[0][0]
+        assert entry.x402_amount == 0.75
+        assert entry.x402_tx_hash == "0xabc123def456"
+        assert entry.x402_token == "USDC"
+        assert entry.x402_payer == "0x1234567890abcdef"
+
+    def test_no_x402_header_leaves_fields_none(self):
+        logger = _make_logger()
+        app = _make_app(logger)
+        client = TestClient(app)
+
+        client.get("/health")
+
+        entry = logger.log.call_args[0][0]
+        assert entry.x402_amount is None
+        assert entry.x402_tx_hash is None
+
+    def test_malformed_x402_header_is_ignored(self):
+        logger = _make_logger()
+        app = _make_app(logger)
+        client = TestClient(app)
+
+        client.get("/health", headers={"X-Payment": "not-valid-json"})
+
+        entry = logger.log.call_args[0][0]
+        assert entry.x402_amount is None
+        assert entry.x402_tx_hash is None
+
+    def test_x402_serializes_as_camel_case(self):
+        logger = _make_logger()
+        app = _make_app(logger)
+        client = TestClient(app)
+
+        payment = json.dumps({"amount": 1.5, "tx_hash": "0xaaa", "token": "USDC", "payer": "0xbbb"})
+        client.get("/health", headers={"X-Payment": payment})
+
+        entry = logger.log.call_args[0][0]
+        data = entry.model_dump(by_alias=True, exclude_none=True)
+        assert data["x402Amount"] == 1.5
+        assert data["x402TxHash"] == "0xaaa"
+        assert data["x402Token"] == "USDC"
+        assert data["x402Payer"] == "0xbbb"

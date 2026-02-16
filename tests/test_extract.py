@@ -9,6 +9,7 @@ from gt8004.middleware._extract import (
     extract_a2a_tool_name,
     extract_http_tool_name,
     extract_tool_name,
+    extract_x402_payment,
 )
 
 
@@ -88,6 +89,55 @@ class TestExtractToolName:
 
     def test_unknown_protocol_uses_http(self):
         assert extract_tool_name("other", None, "/api/search") == "search"
+
+
+class TestExtractX402Payment:
+    def test_none_header(self):
+        result = extract_x402_payment(None)
+        assert result["x402_amount"] is None
+        assert result["x402_tx_hash"] is None
+        assert result["x402_token"] is None
+        assert result["x402_payer"] is None
+
+    def test_empty_header(self):
+        result = extract_x402_payment("")
+        assert result["x402_amount"] is None
+
+    def test_valid_payment(self):
+        header = json.dumps({
+            "amount": 0.5,
+            "tx_hash": "0xabc123",
+            "token": "USDC",
+            "payer": "0xdef456",
+        })
+        result = extract_x402_payment(header)
+        assert result["x402_amount"] == 0.5
+        assert result["x402_tx_hash"] == "0xabc123"
+        assert result["x402_token"] == "USDC"
+        assert result["x402_payer"] == "0xdef456"
+
+    def test_amount_as_string(self):
+        header = json.dumps({"amount": "1.25", "tx_hash": "0x1", "token": "USDC", "payer": "0x2"})
+        result = extract_x402_payment(header)
+        assert result["x402_amount"] == 1.25
+
+    def test_malformed_json(self):
+        result = extract_x402_payment("not-json")
+        assert result["x402_amount"] is None
+        assert result["x402_tx_hash"] is None
+
+    def test_partial_fields(self):
+        header = json.dumps({"amount": 2.0})
+        result = extract_x402_payment(header)
+        assert result["x402_amount"] == 2.0
+        assert result["x402_tx_hash"] is None
+        assert result["x402_token"] is None
+        assert result["x402_payer"] is None
+
+    def test_zero_amount(self):
+        header = json.dumps({"amount": 0, "tx_hash": "0x0", "token": "USDC", "payer": "0x0"})
+        result = extract_x402_payment(header)
+        assert result["x402_amount"] == 0.0
 
 
 class TestBodyLimit:
