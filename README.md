@@ -1,6 +1,6 @@
 # GT8004 Python SDK
 
-Official Python SDK for [GT8004](https://github.com/vataops/gt8004) - AI Agent Analytics & Observability Platform.
+Official Python SDK for [GT8004](https://gt8004.xyz) - AI Agent Analytics & Observability Platform.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 

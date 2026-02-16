@@ -35,10 +35,10 @@ fastapi = ["fastapi>=0.100.0", "starlette>=0.27.0"]
 dev = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0"]
 
 [project.urls]
-Homepage = "https://github.com/AEL/gt8004-sdk-python"
-Documentation = "https://github.com/AEL/gt8004-sdk-python#readme"
-Repository = "https://github.com/AEL/gt8004-sdk-python"
-"Bug Tracker" = "https://github.com/AEL/gt8004-sdk-python/issues"
+Homepage = "https://gt8004.xyz"
+Documentation = "https://github.com/vataops/gt8004-sdk#readme"
+Repository = "https://github.com/vataops/gt8004-sdk"
+"Bug Tracker" = "https://github.com/vataops/gt8004-sdk/issues"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

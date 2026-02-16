@@ -33,11 +33,17 @@ class GT8004Logger:
 
     VALID_PROTOCOLS = ("mcp", "a2a")
 
+    _INGEST_URLS = {
+        "mainnet": "https://ingest.gt8004.xyz/v1/ingest",
+        "testnet": "https://testnet.ingest.gt8004.xyz/v1/ingest",
+    }
+
     def __init__(
         self,
         agent_id: str,
         api_key: str,
-        ingest_url: str = "https://testnet.ingest.gt8004.xyz/v1/ingest",
+        ingest_url: str | None = None,
+        network: str = "mainnet",
         batch_size: int = 50,
         flush_interval: float = 5.0,
         protocol: str | None = None,
@@ -48,11 +54,16 @@ class GT8004Logger:
         Args:
             agent_id: Your GT8004 agent ID
             api_key: Your GT8004 API key
-            ingest_url: GT8004 ingest API endpoint (default: localhost:9092)
+            ingest_url: Custom ingest endpoint (overrides network selection)
+            network: "mainnet" (default) or "testnet"
             batch_size: Number of entries before auto-flush (default: 50)
             flush_interval: Seconds between auto-flushes (default: 5.0)
             protocol: Protocol type - "mcp" or "a2a" (default: None for plain HTTP)
         """
+        if network not in self._INGEST_URLS:
+            raise ValueError(f"network must be 'mainnet' or 'testnet', got '{network}'")
+        if ingest_url is None:
+            ingest_url = self._INGEST_URLS[network]
         if protocol is not None and protocol not in self.VALID_PROTOCOLS:
             raise ValueError(f"protocol must be one of {self.VALID_PROTOCOLS}, got '{protocol}'")
         self.agent_id = agent_id

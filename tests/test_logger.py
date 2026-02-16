@@ -13,7 +13,7 @@ class TestLoggerInit:
         assert logger.agent_id == "test-agent"
         assert logger.api_key == "test-key"
         assert logger.protocol is None
-        assert logger.transport.ingest_url == "https://testnet.ingest.gt8004.xyz/v1/ingest"
+        assert logger.transport.ingest_url == "https://ingest.gt8004.xyz/v1/ingest"
 
     def test_mcp_protocol(self):
         logger = GT8004Logger(agent_id="a", api_key="k", protocol="mcp")
@@ -31,10 +31,19 @@ class TestLoggerInit:
         with pytest.raises(ValueError):
             GT8004Logger(agent_id="a", api_key="k", protocol="grpc")
 
-    def test_custom_ingest_url(self):
+    def test_testnet_network(self):
+        logger = GT8004Logger(agent_id="a", api_key="k", network="testnet")
+        assert logger.transport.ingest_url == "https://testnet.ingest.gt8004.xyz/v1/ingest"
+
+    def test_invalid_network_raises(self):
+        with pytest.raises(ValueError, match="network must be"):
+            GT8004Logger(agent_id="a", api_key="k", network="devnet")
+
+    def test_custom_ingest_url_overrides_network(self):
         logger = GT8004Logger(
             agent_id="a", api_key="k",
-            ingest_url="http://localhost:9092/v1/ingest"
+            ingest_url="http://localhost:9092/v1/ingest",
+            network="testnet",
         )
         assert logger.transport.ingest_url == "http://localhost:9092/v1/ingest"
 
