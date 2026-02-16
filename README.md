@@ -1,13 +1,13 @@
 # GT8004 Python SDK
 
-Official Python SDK for [GT8004](https://github.com/HydroX-labs/gt8004) - AI Agent Analytics & Observability Platform.
+Official Python SDK for [GT8004](https://github.com/vataops/gt8004) - AI Agent Analytics & Observability Platform.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ## Installation
 
 ```bash
-pip install git+https://github.com/HydroX-labs/gt8004-sdk.git
+pip install git+https://github.com/vataops/gt8004-sdk.git
 ```
 
 ## Quick Start
