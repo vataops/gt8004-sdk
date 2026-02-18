@@ -49,6 +49,14 @@ class TestFastAPIMiddlewareBasic:
         assert resp.status_code == 200
         assert resp.json() == {"ok": True}
 
+    def test_excludes_health_from_logging(self):
+        logger = _make_logger()
+        app = _make_app(logger)
+        client = TestClient(app)
+
+        client.get("/health")
+        logger.log.assert_not_called()
+
     def test_logs_get_request(self):
         logger = _make_logger()
         app = _make_app(logger)
@@ -122,7 +130,7 @@ class TestFastAPIMiddlewareMetadata:
         app = _make_app(logger)
         client = TestClient(app)
 
-        client.get("/health")
+        client.get("/api/search")
 
         entry = logger.log.call_args[0][0]
         assert entry.request_id is not None
@@ -133,7 +141,7 @@ class TestFastAPIMiddlewareMetadata:
         app = _make_app(logger)
         client = TestClient(app)
 
-        client.get("/health")
+        client.get("/api/search")
 
         entry = logger.log.call_args[0][0]
         assert entry.timestamp.endswith("Z")
@@ -143,11 +151,11 @@ class TestFastAPIMiddlewareMetadata:
         app = _make_app(logger)
         client = TestClient(app)
 
-        client.get("/health")
+        client.get("/api/search")
 
         entry = logger.log.call_args[0][0]
         assert entry.response_body is not None
-        assert "ok" in entry.response_body
+        assert "results" in entry.response_body
 
 
 class TestFastAPIMiddlewareX402:
@@ -162,7 +170,7 @@ class TestFastAPIMiddlewareX402:
             "token": "USDC",
             "payer": "0x1234567890abcdef",
         })
-        client.get("/health", headers={"X-Payment": payment})
+        client.get("/api/search", headers={"X-Payment": payment})
 
         entry = logger.log.call_args[0][0]
         assert entry.x402_amount == 0.75
@@ -175,7 +183,7 @@ class TestFastAPIMiddlewareX402:
         app = _make_app(logger)
         client = TestClient(app)
 
-        client.get("/health")
+        client.get("/api/search")
 
         entry = logger.log.call_args[0][0]
         assert entry.x402_amount is None
@@ -186,7 +194,7 @@ class TestFastAPIMiddlewareX402:
         app = _make_app(logger)
         client = TestClient(app)
 
-        client.get("/health", headers={"X-Payment": "not-valid-json"})
+        client.get("/api/search", headers={"X-Payment": "not-valid-json"})
 
         entry = logger.log.call_args[0][0]
         assert entry.x402_amount is None
@@ -198,7 +206,7 @@ class TestFastAPIMiddlewareX402:
         client = TestClient(app)
 
         payment = json.dumps({"amount": 1.5, "tx_hash": "0xaaa", "token": "USDC", "payer": "0xbbb"})
-        client.get("/health", headers={"X-Payment": payment})
+        client.get("/api/search", headers={"X-Payment": payment})
 
         entry = logger.log.call_args[0][0]
         data = entry.model_dump(by_alias=True, exclude_none=True)
