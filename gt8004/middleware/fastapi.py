@@ -18,6 +18,16 @@ from ..types import RequestLogEntry
 from ._extract import BODY_LIMIT, extract_tool_name, extract_x402_payment
 
 
+_DEFAULT_EXCLUDE_PATHS: set[str] = {
+    "/.well-known/agent.json",
+    "/.well-known/agent.json/health",
+    "/healthz",
+    "/readyz",
+    "/health",
+    "/_health",
+}
+
+
 class GT8004Middleware(BaseHTTPMiddleware):
     """
     ASGI middleware that automatically logs requests to GT8004.
@@ -36,11 +46,16 @@ class GT8004Middleware(BaseHTTPMiddleware):
         app.add_middleware(GT8004Middleware, logger=logger)
     """
 
-    def __init__(self, app, logger: "GT8004Logger"):
+    def __init__(self, app, logger: "GT8004Logger", exclude_paths: set[str] | None = None):
         super().__init__(app)
         self.logger = logger
+        self.exclude_paths = exclude_paths if exclude_paths is not None else _DEFAULT_EXCLUDE_PATHS
 
     async def dispatch(self, request: Request, call_next):
+        # Skip logging for excluded paths (health checks, etc.)
+        if request.url.path in self.exclude_paths:
+            return await call_next(request)
+
         start_time = time.time()
         request_id = str(uuid.uuid4())
 
