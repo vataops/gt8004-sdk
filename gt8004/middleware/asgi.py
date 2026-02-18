@@ -17,6 +17,8 @@ Usage:
     app = GT8004ASGIMiddleware(app, logger)
 """
 
+from __future__ import annotations
+
 import logging
 import time
 import uuid

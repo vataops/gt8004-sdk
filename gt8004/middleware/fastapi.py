@@ -3,6 +3,8 @@
 Works with FastAPI, Starlette, and any ASGI-compatible framework.
 """
 
+from __future__ import annotations
+
 import time
 import uuid
 from typing import TYPE_CHECKING
