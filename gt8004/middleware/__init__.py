@@ -9,6 +9,13 @@ try:
 except ImportError:
     pass
 
+# Optional: Pure ASGI middleware (requires starlette)
+try:
+    from .asgi import GT8004ASGIMiddleware
+    __all__.append("GT8004ASGIMiddleware")
+except ImportError:
+    pass
+
 # Optional: FastMCP middleware (requires fastmcp)
 try:
     from .mcp import GT8004MCPMiddleware
