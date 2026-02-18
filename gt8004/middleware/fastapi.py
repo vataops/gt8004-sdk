@@ -19,7 +19,6 @@ from ._extract import BODY_LIMIT, extract_tool_name, extract_x402_payment
 
 
 _DEFAULT_EXCLUDE_PATHS: set[str] = {
-    "/.well-known/agent.json",
     "/.well-known/agent.json/health",
     "/healthz",
     "/readyz",
