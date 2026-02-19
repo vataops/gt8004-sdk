@@ -1,10 +1,12 @@
 """Tests for FastAPI/ASGI middleware."""
 
+import base64
 import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 
 from gt8004.middleware.fastapi import GT8004Middleware
@@ -158,24 +160,45 @@ class TestFastAPIMiddlewareMetadata:
         assert "results" in entry.response_body
 
 
+def _b64(data: dict) -> str:
+    """Base64-encode a JSON dict for x402 header tests."""
+    return base64.b64encode(json.dumps(data).encode()).decode()
+
+
+def _make_x402_app(logger, payment_response_header=None):
+    """Create a FastAPI app that returns x-payment-response header."""
+    app = FastAPI()
+    app.add_middleware(GT8004Middleware, logger=logger)
+
+    @app.get("/api/search")
+    async def search():
+        headers = {}
+        if payment_response_header:
+            headers["x-payment-response"] = payment_response_header
+        return JSONResponse(content={"results": []}, headers=headers)
+
+    return app
+
+
 class TestFastAPIMiddlewareX402:
     def test_extracts_x402_payment(self):
         logger = _make_logger()
-        app = _make_app(logger)
+        req_header = _b64({"payload": {"authorization": {"value": 750000}}})
+        resp_header = _b64({
+            "success": True,
+            "transaction": "0xabc123def456",
+            "payer": "0x1234567890abcdef",
+            "network": "base-mainnet",
+        })
+        app = _make_x402_app(logger, payment_response_header=resp_header)
         client = TestClient(app)
 
-        payment = json.dumps({
-            "amount": 0.75,
-            "tx_hash": "0xabc123def456",
-            "token": "USDC",
-            "payer": "0x1234567890abcdef",
-        })
-        client.get("/api/search", headers={"X-Payment": payment})
+        client.get("/api/search", headers={"X-Payment": req_header})
 
         entry = logger.log.call_args[0][0]
         assert entry.x402_amount == 0.75
         assert entry.x402_tx_hash == "0xabc123def456"
-        assert entry.x402_token == "USDC"
+        assert entry.x402_token == "USDC-base-mainnet"
         assert entry.x402_payer == "0x1234567890abcdef"
 
     def test_no_x402_header_leaves_fields_none(self):
@@ -194,7 +217,7 @@ class TestFastAPIMiddlewareX402:
         app = _make_app(logger)
         client = TestClient(app)
 
-        client.get("/api/search", headers={"X-Payment": "not-valid-json"})
+        client.get("/api/search", headers={"X-Payment": "not-valid-base64"})
 
         entry = logger.log.call_args[0][0]
         assert entry.x402_amount is None
@@ -202,15 +225,21 @@ class TestFastAPIMiddlewareX402:
 
     def test_x402_serializes_as_camel_case(self):
         logger = _make_logger()
-        app = _make_app(logger)
+        req_header = _b64({"payload": {"authorization": {"value": 1500000}}})
+        resp_header = _b64({
+            "success": True,
+            "transaction": "0xaaa",
+            "payer": "0xbbb",
+            "network": "base-mainnet",
+        })
+        app = _make_x402_app(logger, payment_response_header=resp_header)
         client = TestClient(app)
 
-        payment = json.dumps({"amount": 1.5, "tx_hash": "0xaaa", "token": "USDC", "payer": "0xbbb"})
-        client.get("/api/search", headers={"X-Payment": payment})
+        client.get("/api/search", headers={"X-Payment": req_header})
 
         entry = logger.log.call_args[0][0]
         data = entry.model_dump(by_alias=True, exclude_none=True)
         assert data["x402Amount"] == 1.5
         assert data["x402TxHash"] == "0xaaa"
-        assert data["x402Token"] == "USDC"
+        assert data["x402Token"] == "USDC-base-mainnet"
         assert data["x402Payer"] == "0xbbb"

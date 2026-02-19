@@ -1,5 +1,6 @@
 """Tests for tool name extraction utilities."""
 
+import base64
 import json
 import pytest
 
@@ -91,52 +92,64 @@ class TestExtractToolName:
         assert extract_tool_name("other", None, "/api/search") == "search"
 
 
+def _b64(data: dict) -> str:
+    """Base64-encode a JSON dict for x402 header tests."""
+    return base64.b64encode(json.dumps(data).encode()).decode()
+
+
 class TestExtractX402Payment:
-    def test_none_header(self):
-        result = extract_x402_payment(None)
+    def test_none_headers(self):
+        result = extract_x402_payment(None, None)
         assert result["x402_amount"] is None
         assert result["x402_tx_hash"] is None
         assert result["x402_token"] is None
         assert result["x402_payer"] is None
 
-    def test_empty_header(self):
-        result = extract_x402_payment("")
+    def test_empty_headers(self):
+        result = extract_x402_payment("", "")
         assert result["x402_amount"] is None
 
     def test_valid_payment(self):
-        header = json.dumps({
-            "amount": 0.5,
-            "tx_hash": "0xabc123",
-            "token": "USDC",
+        req = _b64({"payload": {"authorization": {"value": 500000}}})
+        resp = _b64({
+            "success": True,
+            "transaction": "0xabc123",
             "payer": "0xdef456",
+            "network": "base-mainnet",
         })
-        result = extract_x402_payment(header)
+        result = extract_x402_payment(req, resp)
         assert result["x402_amount"] == 0.5
         assert result["x402_tx_hash"] == "0xabc123"
-        assert result["x402_token"] == "USDC"
+        assert result["x402_token"] == "USDC-base-mainnet"
         assert result["x402_payer"] == "0xdef456"
 
-    def test_amount_as_string(self):
-        header = json.dumps({"amount": "1.25", "tx_hash": "0x1", "token": "USDC", "payer": "0x2"})
-        result = extract_x402_payment(header)
+    def test_amount_from_request_header(self):
+        req = _b64({"payload": {"authorization": {"value": 1250000}}})
+        result = extract_x402_payment(req, None)
         assert result["x402_amount"] == 1.25
 
-    def test_malformed_json(self):
-        result = extract_x402_payment("not-json")
+    def test_malformed_base64(self):
+        result = extract_x402_payment("not-base64!", "not-base64!")
         assert result["x402_amount"] is None
         assert result["x402_tx_hash"] is None
 
-    def test_partial_fields(self):
-        header = json.dumps({"amount": 2.0})
-        result = extract_x402_payment(header)
-        assert result["x402_amount"] == 2.0
-        assert result["x402_tx_hash"] is None
-        assert result["x402_token"] is None
-        assert result["x402_payer"] is None
+    def test_response_only(self):
+        resp = _b64({
+            "success": True,
+            "transaction": "0xtx",
+            "payer": "0xpayer",
+            "network": "base-sepolia",
+        })
+        result = extract_x402_payment(None, resp)
+        assert result["x402_amount"] is None
+        assert result["x402_tx_hash"] == "0xtx"
+        assert result["x402_payer"] == "0xpayer"
+        assert result["x402_token"] == "USDC-base-sepolia"
 
     def test_zero_amount(self):
-        header = json.dumps({"amount": 0, "tx_hash": "0x0", "token": "USDC", "payer": "0x0"})
-        result = extract_x402_payment(header)
+        req = _b64({"payload": {"authorization": {"value": 0}}})
+        resp = _b64({"success": True, "transaction": "0x0", "payer": "0x0", "network": "base-mainnet"})
+        result = extract_x402_payment(req, resp)
         assert result["x402_amount"] == 0.0
 
 

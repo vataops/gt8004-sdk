@@ -74,12 +74,14 @@ class GT8004FlaskMiddleware:
         if body_bytes and request_body_size <= BODY_LIMIT:
             request_body = body_bytes.decode("utf-8", errors="ignore")
 
-        # Intercept response status
+        # Intercept response status and headers
         status_code = 200
+        response_headers: list[tuple[str, str]] = []
 
         def start_response_wrapper(status, headers, exc_info=None):
-            nonlocal status_code
+            nonlocal status_code, response_headers
             status_code = int(status.split(" ", 1)[0])
+            response_headers = headers
             return start_response(status, headers, exc_info)
 
         # Call the WSGI app
@@ -108,8 +110,12 @@ class GT8004FlaskMiddleware:
         }
         headers = {k: v for k, v in raw_headers.items() if v is not None}
 
-        # Extract x402 payment info from X-Payment header
-        x402 = extract_x402_payment(environ.get("HTTP_X_PAYMENT"))
+        # Extract x402 payment info from request + response headers
+        resp_header_dict = {k.lower(): v for k, v in response_headers}
+        x402 = extract_x402_payment(
+            payment_request=environ.get("HTTP_X_PAYMENT"),
+            payment_response=resp_header_dict.get("x-payment-response"),
+        )
 
         entry = RequestLogEntry(
             request_id=request_id,
