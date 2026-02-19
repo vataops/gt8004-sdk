@@ -114,8 +114,11 @@ class GT8004Middleware(BaseHTTPMiddleware):
         }
         headers = {k: v for k, v in raw_headers.items() if v is not None}
 
-        # Extract x402 payment info from X-Payment header
-        x402 = extract_x402_payment(request.headers.get("x-payment"))
+        # Extract x402 payment info from request + response headers
+        x402 = extract_x402_payment(
+            payment_request=request.headers.get("x-payment"),
+            payment_response=response.headers.get("x-payment-response"),
+        )
 
         entry = RequestLogEntry(
             request_id=request_id,

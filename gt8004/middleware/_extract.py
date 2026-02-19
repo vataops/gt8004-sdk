@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 
@@ -52,11 +53,20 @@ def extract_tool_name(protocol: str | None, body: str | None, path: str) -> str 
         return extract_http_tool_name(path)
 
 
-def extract_x402_payment(header_value: str | None) -> dict:
-    """Extract x402 payment fields from the X-Payment header JSON.
+def extract_x402_payment(
+    payment_request: str | None,
+    payment_response: str | None,
+) -> dict:
+    """Extract x402 payment fields from X-Payment and X-Payment-Response headers.
+
+    The X-Payment request header is base64-encoded JSON containing the signed
+    payment proof with the authorization (amount, payer).
+
+    The X-Payment-Response response header is base64-encoded JSON containing
+    the settlement result (success, transaction hash, payer).
 
     Returns a dict with keys x402_amount, x402_tx_hash, x402_token, x402_payer.
-    All values default to None if the header is missing or malformed.
+    All values default to None if the headers are missing or malformed.
     """
     result: dict = {
         "x402_amount": None,
@@ -64,19 +74,32 @@ def extract_x402_payment(header_value: str | None) -> dict:
         "x402_token": None,
         "x402_payer": None,
     }
-    if not header_value:
-        return result
-    try:
-        payment = json.loads(header_value)
-        amount = payment.get("amount")
-        if amount is not None:
-            result["x402_amount"] = float(amount)
-        if payment.get("tx_hash"):
-            result["x402_tx_hash"] = str(payment["tx_hash"])
-        if payment.get("token"):
-            result["x402_token"] = str(payment["token"])
-        if payment.get("payer"):
-            result["x402_payer"] = str(payment["payer"])
-    except (json.JSONDecodeError, TypeError, ValueError, AttributeError):
-        pass
+
+    # Parse X-Payment-Response (base64 JSON) for settlement info
+    if payment_response:
+        try:
+            resp = json.loads(base64.b64decode(payment_response))
+            if resp.get("success"):
+                if resp.get("transaction"):
+                    result["x402_tx_hash"] = str(resp["transaction"])
+                if resp.get("payer"):
+                    result["x402_payer"] = str(resp["payer"])
+                if resp.get("network"):
+                    result["x402_token"] = f"USDC-{resp['network']}"
+        except (json.JSONDecodeError, TypeError, ValueError, Exception):
+            pass
+
+    # Parse X-Payment request header (base64 JSON) for amount
+    if payment_request:
+        try:
+            req = json.loads(base64.b64decode(payment_request))
+            payload = req.get("payload", {})
+            auth = payload.get("authorization", {})
+            value = auth.get("value")
+            if value is not None:
+                # USDC has 6 decimals; value is in smallest unit
+                result["x402_amount"] = int(value) / 1_000_000
+        except (json.JSONDecodeError, TypeError, ValueError, Exception):
+            pass
+
     return result
