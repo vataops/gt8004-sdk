@@ -87,14 +87,17 @@ class GT8004ASGIMiddleware:
                 request_body.extend(chunk[: BODY_LIMIT - len(request_body)])
             return msg
 
-        # Capture response status + body
+        # Capture response status + body + headers
         status_code = 0
         response_body = bytearray()
+        response_headers: dict[str, str] = {}
 
         async def send_wrapper(message):
             nonlocal status_code
             if message["type"] == "http.response.start":
                 status_code = message.get("status", 0)
+                for key, value in message.get("headers", []):
+                    response_headers[key.decode("latin-1").lower()] = value.decode("latin-1")
             elif message["type"] == "http.response.body":
                 chunk = message.get("body", b"")
                 if len(response_body) < BODY_LIMIT:
@@ -121,7 +124,10 @@ class GT8004ASGIMiddleware:
                     pass
 
             tool_name = extract_tool_name(self.logger.protocol, req_str, path)
-            x402 = extract_x402_payment(raw_headers.get("x-payment"))
+            x402 = extract_x402_payment(
+                payment_request=raw_headers.get("x-payment"),
+                payment_response=response_headers.get("x-payment-response"),
+            )
 
             client = scope.get("client")
             hdr = {

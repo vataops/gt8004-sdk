@@ -13,7 +13,7 @@ setup(
     description="Python SDK for GT8004 agent analytics and observability",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/AEL/gt8004-sdk-python",
+    url="https://github.com/vataops/gt8004-sdk",
     packages=find_packages(),
     classifiers=[
         "Development Status :: 3 - Alpha",
