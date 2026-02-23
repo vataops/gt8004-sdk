@@ -12,7 +12,7 @@ import threading
 import time
 import uuid
 from typing import TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 
 if TYPE_CHECKING:
     from ..logger import GT8004Logger
@@ -82,7 +82,10 @@ class GT8004FlaskMiddleware:
 
         def start_response_wrapper(status, headers, exc_info=None):
             nonlocal status_code, response_headers
-            status_code = int(status.split(" ", 1)[0])
+            try:
+                status_code = int(status.split(" ", 1)[0])
+            except (ValueError, AttributeError):
+                status_code = 0
             response_headers = headers
             return start_response(status, headers, exc_info)
 
@@ -136,7 +139,7 @@ class GT8004FlaskMiddleware:
             user_agent=user_agent,
             referer=referer,
             content_type=content_type,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             x402_amount=x402["x402_amount"],
             x402_tx_hash=x402["x402_tx_hash"],
             x402_token=x402["x402_token"],

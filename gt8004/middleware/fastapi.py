@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 import uuid
 from typing import TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request, Response
@@ -134,7 +134,7 @@ class GT8004Middleware(BaseHTTPMiddleware):
             response_body_size=response_body_size,
             headers=headers if headers else None,
             ip_address=request.client.host if request.client else None,
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             x402_amount=x402["x402_amount"],
             x402_tx_hash=x402["x402_tx_hash"],
             x402_token=x402["x402_token"],

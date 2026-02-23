@@ -1,7 +1,7 @@
 """Type definitions for GT8004 SDK."""
 
 from typing import Optional, List, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -51,7 +51,7 @@ class RequestLogEntry(BaseModel):
     source: str = "sdk"
 
     # Timestamp (ISO 8601 format with 'Z' suffix)
-    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'))
 
 
 class LogBatch(BaseModel):

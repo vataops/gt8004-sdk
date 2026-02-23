@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING
 
 from starlette.types import ASGIApp, Receive, Scope, Send
@@ -162,7 +162,7 @@ class GT8004ASGIMiddleware:
                 ip_address=client[0] if client else None,
                 user_agent=raw_headers.get("user-agent"),
                 content_type=raw_headers.get("content-type"),
-                timestamp=datetime.utcnow().isoformat() + "Z",
+                timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
                 x402_amount=x402["x402_amount"],
                 x402_tx_hash=x402["x402_tx_hash"],
                 x402_token=x402["x402_token"],

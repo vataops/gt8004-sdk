@@ -87,7 +87,7 @@ class GT8004Logger:
         Returns:
             True if the ingest endpoint accepted the ping, False otherwise.
         """
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         entry = RequestLogEntry(
             request_id="startup-ping",
@@ -96,7 +96,7 @@ class GT8004Logger:
             status_code=0,
             response_ms=0,
             source="sdk_ping",
-            timestamp=datetime.utcnow().isoformat() + "Z",
+            timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
         )
         try:
             await self.transport.add(entry)

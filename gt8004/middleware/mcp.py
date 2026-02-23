@@ -10,7 +10,7 @@ import json
 import time
 import uuid
 from typing import TYPE_CHECKING
-from datetime import datetime
+from datetime import datetime, timezone
 
 from fastmcp.server.middleware import Middleware, MiddlewareContext
 
@@ -81,6 +81,6 @@ class GT8004MCPMiddleware(Middleware):
                 protocol="mcp",
                 request_body=request_body,
                 error_type=error_type,
-                timestamp=datetime.utcnow().isoformat() + "Z",
+                timestamp=datetime.now(timezone.utc).isoformat().replace('+00:00', 'Z'),
             )
             await self.logger.log(entry)
