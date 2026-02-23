@@ -1,6 +1,7 @@
 """Transport layer for batching and sending logs to GT8004 ingest API."""
 
 import asyncio
+import random
 import time
 from typing import List, Optional
 import httpx

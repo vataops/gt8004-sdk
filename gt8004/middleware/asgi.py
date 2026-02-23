@@ -75,7 +75,10 @@ class GT8004ASGIMiddleware:
         # Extract headers from ASGI scope
         raw_headers: dict[str, str] = {}
         for key, value in scope.get("headers", []):
-            raw_headers[key.decode("latin-1")] = value.decode("latin-1")
+            try:
+                raw_headers[key.decode("latin-1")] = value.decode("latin-1")
+            except Exception:
+                pass
 
         # Capture request body (passthrough — inner app also reads from receive)
         request_body = bytearray()
@@ -97,7 +100,10 @@ class GT8004ASGIMiddleware:
             if message["type"] == "http.response.start":
                 status_code = message.get("status", 0)
                 for key, value in message.get("headers", []):
-                    response_headers[key.decode("latin-1").lower()] = value.decode("latin-1")
+                    try:
+                        response_headers[key.decode("latin-1").lower()] = value.decode("latin-1")
+                    except Exception:
+                        pass
             elif message["type"] == "http.response.body":
                 chunk = message.get("body", b"")
                 if len(response_body) < BODY_LIMIT:

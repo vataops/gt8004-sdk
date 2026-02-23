@@ -45,16 +45,18 @@ class GT8004FlaskMiddleware:
         self.logger = logger
         self._loop: asyncio.AbstractEventLoop | None = None
         self._thread: threading.Thread | None = None
+        self._loop_lock = threading.Lock()
 
     def _get_loop(self) -> asyncio.AbstractEventLoop:
         """Get or create a background event loop for async logging."""
-        if self._loop is None or self._loop.is_closed():
-            self._loop = asyncio.new_event_loop()
-            self._thread = threading.Thread(
-                target=self._loop.run_forever, daemon=True
-            )
-            self._thread.start()
-        return self._loop
+        with self._loop_lock:
+            if self._loop is None or self._loop.is_closed():
+                self._loop = asyncio.new_event_loop()
+                self._thread = threading.Thread(
+                    target=self._loop.run_forever, daemon=True
+                )
+                self._thread.start()
+            return self._loop
 
     def __call__(self, environ, start_response):
         start_time = time.time()
