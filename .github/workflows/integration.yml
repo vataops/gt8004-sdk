@@ -1,0 +1,32 @@
+name: Integration Tests
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    # Skip if secrets are not configured (e.g. forks or PRs from external contributors)
+    if: ${{ secrets.GT8004_AGENT_ID != '' && secrets.GT8004_API_KEY != '' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev,fastapi]"
+
+      - name: Run integration tests
+        env:
+          GT8004_AGENT_ID: ${{ secrets.GT8004_AGENT_ID }}
+          GT8004_API_KEY: ${{ secrets.GT8004_API_KEY }}
+        run: |
+          pytest tests/test_integration.py -v -s
