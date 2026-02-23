@@ -31,7 +31,7 @@ class GT8004Logger:
         await logger.close()
     """
 
-    VALID_PROTOCOLS = ("mcp", "a2a")
+    VALID_PROTOCOLS = frozenset(("mcp", "a2a"))
 
     _INGEST_URLS = {
         "mainnet": "https://ingest.gt8004.xyz/v1/ingest",

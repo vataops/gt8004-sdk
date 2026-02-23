@@ -12,6 +12,8 @@ from .types import RequestLogEntry, LogBatch
 class BatchTransport:
     """Handles batching and async transport of log entries to GT8004 ingest API."""
 
+    MAX_BUFFER_SIZE = 5000
+
     def __init__(
         self,
         ingest_url: str,
@@ -83,16 +85,17 @@ class BatchTransport:
                 return
             except Exception as e:
                 if attempt < 2:
-                    # Exponential backoff: 1s, 2s
-                    await asyncio.sleep(2 ** attempt)
+                    # Exponential backoff with jitter: ~1s, ~2s
+                    await asyncio.sleep(2 ** attempt + random.uniform(0, 1))
                 else:
                     # All retries failed
                     self.consecutive_failures += 1
                     if self.consecutive_failures >= 5:
                         # Circuit breaker: back off for 30 seconds
                         self.circuit_breaker_until = time.time() + 30
-                    # Re-queue failed entries to avoid data loss
-                    self.buffer = batch.entries + self.buffer
+                    # Re-queue failed entries, capped to prevent unbounded growth
+                    requeued = batch.entries + self.buffer
+                    self.buffer = requeued[: self.MAX_BUFFER_SIZE]
 
     async def flush(self) -> None:
         """Flush all pending logs immediately."""
