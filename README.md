@@ -154,6 +154,22 @@ await logger.close()
 | Pure ASGI (x402 compatible) | `GT8004ASGIMiddleware` | `[fastapi]` |
 | Flask / Django (WSGI) | `GT8004FlaskMiddleware` | *(none)* |
 
+### Excluding Paths
+
+By default, health check endpoints are excluded from logging. You can customize this with `exclude_paths`:
+
+```python
+# FastAPI / Starlette
+app.add_middleware(GT8004Middleware, logger=logger, exclude_paths={"/health", "/metrics", "/internal"})
+
+# Pure ASGI
+app = GT8004ASGIMiddleware(app, logger, exclude_paths={"/health", "/metrics"})
+```
+
+Default excluded paths:
+- `GT8004Middleware`: `/health`, `/healthz`, `/readyz`, `/_health`, `/.well-known/agent.json/health`
+- `GT8004ASGIMiddleware`: `/health`, `/healthz`, `/readyz`, `/_health`
+
 ## Protocol Support
 
 | Protocol | Tool Name Source | Example |
@@ -168,7 +184,7 @@ All middleware adapters automatically extract x402 payment data from HTTP header
 
 - `x402_amount` - Payment amount in USDC
 - `x402_tx_hash` - On-chain settlement transaction hash
-- `x402_token` - Token identifier (e.g. `USDC-base`)
+- `x402_token` - Token identifier (e.g. `USDC-base-mainnet`)
 - `x402_payer` - Payer wallet address
 
 No additional configuration needed — payment headers (`X-Payment`, `X-Payment-Response`) are parsed automatically when present.
